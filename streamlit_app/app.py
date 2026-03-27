@@ -922,8 +922,9 @@ with tab4:
 # ──────────────────────────────────────────────────────────────────────────────
 
 with tab5:
-    page_header("BI Export", "Download Power BI-ready datasets in star-schema format")
+    page_header("BI Export", "Historical accumulation — each run saves to a period subfolder, Power BI reads all")
 
+    # ── Instructions ──────────────────────────────────────────────────────
     st.markdown(f"""
     <div style="
       background:{_rgba(C['driscoll_gold'],0.04)};
@@ -933,39 +934,145 @@ with tab5:
       margin-bottom:24px;
     ">
       <div style="font-family:var(--font-body);font-size:14px;font-weight:700;color:{C['driscoll_gold']};margin-bottom:10px;">
-        Power BI Import Instructions
+        Power BI Setup (one-time)
       </div>
       <div style="font-family:var(--font-body);font-size:13px;color:{C['t3']};line-height:1.9;">
-        <span style="color:{C['t2']};font-weight:600;">1.</span> Open Power BI Desktop &nbsp;→&nbsp;
-        <span style="color:{C['t2']};font-weight:600;">2.</span> Home → Get Data → CSV &nbsp;→&nbsp;
-        <span style="color:{C['t2']};font-weight:600;">3.</span> Import <code style="background:{C['bg_card']};padding:2px 6px;border-radius:4px;font-family:var(--font-mono);font-size:11px;">fact_alerts.csv</code> as central fact table<br>
-        <span style="color:{C['t2']};font-weight:600;">4.</span> Import <code style="background:{C['bg_card']};padding:2px 6px;border-radius:4px;font-family:var(--font-mono);font-size:11px;">dim_rooms.csv</code> and <code style="background:{C['bg_card']};padding:2px 6px;border-radius:4px;font-family:var(--font-mono);font-size:11px;">dim_event_types.csv</code> as dimensions &nbsp;→&nbsp;
-        <span style="color:{C['t2']};font-weight:600;">5.</span> Join via <code style="background:{C['bg_card']};padding:2px 6px;border-radius:4px;font-family:var(--font-mono);font-size:11px;">room_id</code> and <code style="background:{C['bg_card']};padding:2px 6px;border-radius:4px;font-family:var(--font-mono);font-size:11px;">event_type</code>
+        <span style="color:{C['t2']};font-weight:600;">1.</span> Open Power BI Desktop → Home → <b>Get Data → Folder</b><br>
+        <span style="color:{C['t2']};font-weight:600;">2.</span> Point to <code style="background:{C['bg_card']};padding:2px 6px;border-radius:4px;font-family:var(--font-mono);font-size:11px;">bi_output/_combined/</code><br>
+        <span style="color:{C['t2']};font-weight:600;">3.</span> Power BI loads all CSVs (fact_alerts, dim_rooms, etc.)<br>
+        <span style="color:{C['t2']};font-weight:600;">4.</span> Each month, run the pipeline → new data auto-accumulates<br>
+        <span style="color:{C['t2']};font-weight:600;">5.</span> In Power BI just click <b>Refresh</b> to pull the latest data
       </div>
     </div>
     """, unsafe_allow_html=True)
 
-    output_dir = "/tmp/bi_output"
-    if st.button("⚡  Generate BI Export Files", type="primary"):
-        with st.spinner("Exporting datasets..."):
-            outputs = export_bi_datasets(events_df, esc_df, bursts_df, output_dir)
-            st.session_state.bi_exported = True
-        st.success("Export complete!")
+    # ── Output folder config ──────────────────────────────────────────────
+    section_header("Export Configuration", icon="📁")
 
+    col_path, col_period = st.columns([2, 1])
+    with col_path:
+        output_dir = st.text_input(
+            "Output folder (local path)",
+            value="./data/bi_output",
+            help="Root folder where period subfolders will accumulate. Power BI should point to the _combined/ subfolder inside this path.",
+        )
+    with col_period:
+        # Auto-detect period from data
+        try:
+            dates = pd.to_datetime(events_df['date'])
+            min_d, max_d = dates.min(), dates.max()
+            if min_d.month == max_d.month and min_d.year == max_d.year:
+                auto_label = min_d.strftime("%Y-%m_%b")
+            else:
+                auto_label = f"{min_d.strftime('%Y-%m')}_to_{max_d.strftime('%Y-%m')}"
+        except Exception:
+            auto_label = pd.Timestamp.now().strftime("%Y-%m_%b")
+
+        period_label = st.text_input(
+            "Period label",
+            value=auto_label,
+            help="Auto-detected from data. Override if needed.",
+        )
+
+    # ── Show existing periods ─────────────────────────────────────────────
+    root_path = Path(output_dir)
+    existing_periods = []
+    if root_path.exists():
+        existing_periods = sorted([
+            d.name for d in root_path.iterdir()
+            if d.is_dir() and d.name != "_combined"
+        ])
+
+    if existing_periods:
+        st.markdown(f"""
+        <div style="
+          background:{_rgba(C['green'],0.05)};
+          border:1px solid {_rgba(C['green'],0.15)};
+          border-radius:8px;
+          padding:12px 16px;
+          margin:12px 0 20px 0;
+        ">
+          <span style="font-family:var(--font-mono);font-size:11px;font-weight:600;color:{C['green']};">
+            {len(existing_periods)} HISTORICAL PERIOD{'S' if len(existing_periods) != 1 else ''} ON DISK
+          </span>
+          <span style="font-family:var(--font-mono);font-size:11px;color:{C['t3']};margin-left:12px;">
+            {' → '.join(existing_periods)}
+          </span>
+        </div>
+        """, unsafe_allow_html=True)
+
+    # Check for overwrite warning
+    if period_label in existing_periods:
+        st.markdown(f"""
+        <div style="
+          background:{_rgba(C['amber'],0.06)};
+          border:1px solid {_rgba(C['amber'],0.18)};
+          border-left:3px solid {C['amber']};
+          border-radius:8px;
+          padding:10px 14px;
+          margin-bottom:16px;
+        ">
+          <span style="font-family:var(--font-body);font-size:12px;color:{C['t2']};">
+            <b style="color:{C['amber']};">⚠ OVERWRITE</b> — Period <code>{period_label}</code> already exists and will be replaced.
+          </span>
+        </div>
+        """, unsafe_allow_html=True)
+
+    # ── Export button ─────────────────────────────────────────────────────
+    if st.button("⚡  Export & Accumulate", type="primary"):
+        with st.spinner(f"Exporting {period_label} and rebuilding combined folder..."):
+            outputs = export_bi_datasets(
+                events_df, esc_df, bursts_df,
+                output_dir=output_dir,
+                period_label=period_label,
+            )
+            st.session_state.bi_exported   = True
+            st.session_state.export_period = period_label
+            st.session_state.export_dir    = output_dir
+        st.success(f"Export complete → {period_label}/")
+        st.rerun()
+
+    # ── Download section ──────────────────────────────────────────────────
     if st.session_state.get('bi_exported'):
-        section_header("Download Files", icon="📦")
-        dl_cols = st.columns(3)
-        for i, filename in enumerate(sorted(Path(output_dir).glob("*.csv"))):
-            with dl_cols[i % 3]:
-                with open(filename, 'rb') as f:
-                    st.download_button(
-                        label=f"⬇  {filename.name}",
-                        data=f.read(),
-                        file_name=filename.name,
-                        mime='text/csv',
-                        use_container_width=True,
-                    )
+        exp_dir    = st.session_state.get('export_dir', output_dir)
+        exp_period = st.session_state.get('export_period', period_label)
+        combined_path = Path(exp_dir) / "_combined"
 
+        # Downloads from _combined (what Power BI would see)
+        section_header("Download Combined Files", subtitle="all periods merged", icon="📦")
+
+        if combined_path.exists():
+            dl_cols = st.columns(3)
+            csv_files = sorted(combined_path.glob("*.csv"))
+            for i, filename in enumerate(csv_files):
+                with dl_cols[i % 3]:
+                    with open(filename, 'rb') as f:
+                        st.download_button(
+                            label=f"⬇  {filename.name}",
+                            data=f.read(),
+                            file_name=filename.name,
+                            mime='text/csv',
+                            use_container_width=True,
+                        )
+
+        # Current period files
+        period_path = Path(exp_dir) / exp_period
+        if period_path.exists():
+            with st.expander(f"View {exp_period}/ files only (current period)"):
+                dl_cols2 = st.columns(3)
+                for i, filename in enumerate(sorted(period_path.glob("*.csv"))):
+                    with dl_cols2[i % 3]:
+                        with open(filename, 'rb') as f:
+                            st.download_button(
+                                label=f"⬇  {filename.name}",
+                                data=f.read(),
+                                file_name=f"{exp_period}_{filename.name}",
+                                mime='text/csv',
+                                use_container_width=True,
+                                key=f"dl_period_{filename.name}",
+                            )
+
+    # ── Star schema ───────────────────────────────────────────────────────
     section_header("Star Schema", icon="⭐")
     st.markdown(f"""
     <div style="
@@ -978,10 +1085,11 @@ with tab5:
       line-height:1.9;
       color:{C['t3']};
     ">
-      <span style="color:{C['blue']};font-weight:700;">fact_alerts</span><br>
+      <span style="color:{C['blue']};font-weight:700;">fact_alerts</span> <span style="color:{C['t3']};font-size:10px;">+ export_period column</span><br>
       &nbsp;&nbsp;├── <span style="color:{C['cyan']};">room_id</span> ──────────► <span style="color:{C['purple']};">dim_rooms</span><br>
       &nbsp;&nbsp;├── <span style="color:{C['cyan']};">event_type</span> ────────► <span style="color:{C['purple']};">dim_event_types</span><br>
       &nbsp;&nbsp;├── <span style="color:{C['cyan']};">date</span> ──────────────► <span style="color:{C['purple']};">dim_date</span> <span style="color:{C['t3']};font-size:10px;">(auto PBI)</span><br>
+      &nbsp;&nbsp;├── <span style="color:{C['cyan']};">export_period</span> ─────► <span style="color:{C['driscoll_gold']};">slicer / filter</span><br>
       &nbsp;&nbsp;└── <span style="color:{C['amber']};">measures</span><br>
       &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├── duration_sec<br>
       &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├── severity<br>
@@ -992,5 +1100,33 @@ with tab5:
       <span style="color:{C['green']};font-weight:700;">agg_hourly</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Pre-aggregated hourly heatmaps<br>
       <span style="color:{C['amber']};font-weight:700;">escalation_sequences</span> &nbsp;Pattern analysis<br>
       <span style="color:{C['red']};font-weight:700;">bursts</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Burst detection
+    </div>
+    """, unsafe_allow_html=True)
+
+    # ── Folder structure diagram ──────────────────────────────────────────
+    section_header("Folder Structure", icon="🗂")
+    st.markdown(f"""
+    <div style="
+      background:{C['bg_card']};
+      border:1px solid {C['border']};
+      border-radius:12px;
+      padding:20px 24px;
+      font-family:var(--font-mono);
+      font-size:12px;
+      line-height:1.8;
+      color:{C['t3']};
+    ">
+      <span style="color:{C['t1']};font-weight:700;">bi_output/</span><br>
+      &nbsp;&nbsp;├── <span style="color:{C['blue']};">2025-07_Jul/</span><br>
+      &nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;├── fact_alerts.csv<br>
+      &nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;├── dim_rooms.csv<br>
+      &nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;└── ...<br>
+      &nbsp;&nbsp;├── <span style="color:{C['blue']};">2025-08_Aug/</span><br>
+      &nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;├── fact_alerts.csv<br>
+      &nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;└── ...<br>
+      &nbsp;&nbsp;└── <span style="color:{C['driscoll_gold']};font-weight:700;">_combined/</span> <span style="color:{C['driscoll_gold']};font-size:10px;">← Power BI points here</span><br>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├── fact_alerts.csv <span style="color:{C['t3']};font-size:10px;">(all months merged)</span><br>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;├── dim_rooms.csv <span style="color:{C['t3']};font-size:10px;">(deduplicated)</span><br>
+      &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;└── ...
     </div>
     """, unsafe_allow_html=True)
