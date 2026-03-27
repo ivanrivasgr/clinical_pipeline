@@ -1,0 +1,45 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Data files (do not commit patient data)
+*.csv
+*.xlsx
+*.xls
+*.xlm
+*.parquet
+!requirements.txt
+
+# Temp / output
+/tmp/
+bi_output/
+*.log
+
+# Streamlit
+.streamlit/secrets.toml
+
+# Environment
+.env
+.env.local
