@@ -600,7 +600,7 @@ with tab1:
         fig.update_traces(marker_line_width=0)
         fig.update_layout(yaxis={'categoryorder': 'total ascending'}, coloraxis_showscale=False)
         clinical_layout(fig, height=420, xtitle="Count")
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width="stretch")
 
     with col_right:
         section_header("Severity Distribution", icon="🎯")
@@ -626,7 +626,7 @@ with tab1:
             )]
         )
         clinical_layout(fig2, height=420)
-        st.plotly_chart(fig2, use_container_width=True)
+        st.plotly_chart(fig2, width="stretch")
 
     section_header("Alarm Activity by Hour", subtitle="24-hour distribution with critical overlay", icon="🕐")
     hourly = freq_stats['by_hour'].copy()
@@ -644,7 +644,7 @@ with tab1:
         ))
     clinical_layout(fig3, height=300, show_legend=True, xtitle="Hour of Day", ytitle="Alarm Count")
     fig3.update_layout(barmode='overlay')
-    st.plotly_chart(fig3, use_container_width=True)
+    st.plotly_chart(fig3, width="stretch")
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -713,7 +713,7 @@ with tab2:
             ))
         clinical_layout(fig_tl, height=480, xtitle="Time")
         fig_tl.update_layout(hovermode='closest')
-        st.plotly_chart(fig_tl, use_container_width=True)
+        st.plotly_chart(fig_tl, width="stretch")
 
         section_header("Severity Progression Over Time", icon="📉")
         fig_sev = px.scatter(
@@ -728,7 +728,7 @@ with tab2:
             title=dict(text="Severity"), tickvals=[1, 2, 3], ticktext=["Low", "Med", "Crit"],
             len=0.5, thickness=12,
         ))
-        st.plotly_chart(fig_sev, use_container_width=True)
+        st.plotly_chart(fig_sev, width="stretch")
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -787,7 +787,7 @@ with tab3:
                         annotation_font_color=C['red'])
         clinical_layout(fig_n, height=380, xtitle="Event Type", ytitle="Noise %")
         fig_n.update_layout(coloraxis_showscale=False)
-        st.plotly_chart(fig_n, use_container_width=True)
+        st.plotly_chart(fig_n, width="stretch")
 
     with col_r:
         section_header("Duration Distribution", icon="⏱")
@@ -802,7 +802,7 @@ with tab3:
             annotation_font_size=10, annotation_font_color=C['red'],
         )
         clinical_layout(fig_hist, height=380, xtitle="Duration (seconds)", ytitle="Count")
-        st.plotly_chart(fig_hist, use_container_width=True)
+        st.plotly_chart(fig_hist, width="stretch")
 
     section_header("Signal vs Noise by Room", icon="🏠")
     room_stats = freq_stats['by_room'].copy()
@@ -820,12 +820,12 @@ with tab3:
     ))
     clinical_layout(fig_room, height=360, show_legend=True, xtitle="Room", ytitle="Alarm Count")
     fig_room.update_layout(barmode='stack')
-    st.plotly_chart(fig_room, use_container_width=True)
+    st.plotly_chart(fig_room, width="stretch")
 
     section_header("Duration Statistics by Event Type", icon="📋")
     st.dataframe(
         duration_stats['by_type'].style.background_gradient(subset=['noise_pct'], cmap='YlOrRd'),
-        use_container_width=True,
+        width="stretch",
     )
 
 
@@ -852,7 +852,7 @@ with tab4:
         st.dataframe(
             esc_df[['room_id', 'escalation_time', 'from_severity', 'to_severity',
                     'trigger_event', 'prior_events_count', 'prior_event_types']],
-            use_container_width=True,
+            width="stretch",
         )
 
         esc_by_room = esc_df.groupby('room_id').size().reset_index(name='escalations')
@@ -866,7 +866,7 @@ with tab4:
         clinical_layout(fig_esc, height=350, xtitle="Room", ytitle="Escalation Count",
                         title_text="Escalation Sequences per Room")
         fig_esc.update_layout(coloraxis_showscale=False)
-        st.plotly_chart(fig_esc, use_container_width=True)
+        st.plotly_chart(fig_esc, width="stretch")
     else:
         empty_state("✅", "No escalation sequences detected in this dataset")
 
@@ -887,10 +887,10 @@ with tab4:
             title=dict(text="Max Severity"), tickvals=[1, 2, 3], ticktext=["Low", "Med", "Crit"],
             len=0.4, thickness=12,
         ))
-        st.plotly_chart(fig_burst, use_container_width=True)
+        st.plotly_chart(fig_burst, width="stretch")
 
         with st.expander("View burst details table"):
-            st.dataframe(bursts_df, use_container_width=True)
+            st.dataframe(bursts_df, width="stretch")
     else:
         empty_state("✅", "No burst patterns detected")
 
@@ -900,7 +900,7 @@ with tab4:
         st.dataframe(
             pre_crit_df[['room_id', 'start_time', 'event_type', 'severity',
                          'critical_event_type', 'minutes_before_critical']],
-            use_container_width=True,
+            width="stretch",
         )
 
         pre_type = pre_crit_df.groupby('event_type').size().reset_index(name='count')
@@ -914,7 +914,7 @@ with tab4:
         clinical_layout(fig_pre, height=350, xtitle="Event Type", ytitle="Frequency",
                         title_text="Most Common Precursors to Critical Alarms")
         fig_pre.update_layout(coloraxis_showscale=False)
-        st.plotly_chart(fig_pre, use_container_width=True)
+        st.plotly_chart(fig_pre, width="stretch")
 
 
 # ──────────────────────────────────────────────────────────────────────────────
