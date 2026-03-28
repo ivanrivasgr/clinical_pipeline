@@ -1,0 +1,14 @@
+event_type,count,avg_severity,avg_duration_sec,noise_pct,clinical_category,risk_level,export_period
+RR,7192,2.0,23.14,50.3,Respiratory,Low,2025-04_to_2025-07
+Other,6001,1.99,36.49,42.2,Other,Low,2025-04_to_2025-07
+HR,5070,1.94,22.24,63.1,Cardiac,Low,2025-04_to_2025-07
+SpO2,2826,2.0,16.52,42.8,Respiratory,Low,2025-04_to_2025-07
+NBPs,1711,2.0,77.62,31.6,Hemodynamic,Low,2025-04_to_2025-07
+Desat,796,3.0,72.55,17.1,Respiratory,High,2025-04_to_2025-07
+Brady,463,3.0,43.5,25.1,Cardiac,Medium,2025-04_to_2025-07
+IrregularHR,274,1.0,433.21,4.7,Cardiac,Medium,2025-04_to_2025-07
+VTach,169,3.0,93.4,30.2,Cardiac,High,2025-04_to_2025-07
+NonSustainVT,137,1.0,90.12,38.0,Cardiac,Medium,2025-04_to_2025-07
+Asystole,96,3.0,80.89,31.2,Cardiac,High,2025-04_to_2025-07
+Apnea,33,3.0,37.61,27.3,Respiratory,High,2025-04_to_2025-07
+RunPVCs,25,1.0,76.52,32.0,Cardiac,Low,2025-04_to_2025-07
