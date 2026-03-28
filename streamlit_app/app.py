@@ -716,19 +716,21 @@ with tab2:
         st.plotly_chart(fig_tl, width="stretch")
 
         section_header("Severity Progression Over Time", icon="📉")
-        fig_sev = px.scatter(
-            room_df, x='start_time', y='event_type',
-            size='duration_sec', color='severity',
-            color_continuous_scale=[C['green'], C['amber'], C['red']],
-            hover_data=['metric_value', 'threshold', 'duration_sec'],
-        )
-        fig_sev.update_traces(marker=dict(line=dict(width=0), opacity=0.8))
-        clinical_layout(fig_sev, height=350)
-        fig_sev.update_layout(coloraxis_colorbar=dict(
-            title=dict(text="Severity"), tickvals=[1, 2, 3], ticktext=["Low", "Med", "Crit"],
-            len=0.5, thickness=12,
-        ))
-        st.plotly_chart(fig_sev, width="stretch")
+        scatter_df = room_df.dropna(subset=['duration_sec'])
+        if not scatter_df.empty:
+            fig_sev = px.scatter(
+                scatter_df, x='start_time', y='event_type',
+                size='duration_sec', color='severity',
+                color_continuous_scale=[C['green'], C['amber'], C['red']],
+                hover_data=['metric_value', 'threshold', 'duration_sec'],
+            )
+            fig_sev.update_traces(marker=dict(line=dict(width=0), opacity=0.8))
+            clinical_layout(fig_sev, height=350)
+            fig_sev.update_layout(coloraxis_colorbar=dict(
+                title=dict(text="Severity"), tickvals=[1, 2, 3], ticktext=["Low", "Med", "Crit"],
+                len=0.5, thickness=12,
+            ))
+            st.plotly_chart(fig_sev, width="stretch")
 
 
 # ──────────────────────────────────────────────────────────────────────────────
